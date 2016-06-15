@@ -72,7 +72,8 @@ class PatternPart:
         rawPattern = re.escape(self.pattern)
         # Allow any character instead of spaces in the pattern
         rawPattern = re.sub(r"\\ ", r".", rawPattern)
-        self.regex = re.compile(rawPattern)
+        rawPatternOverlap = r"(?=(" + rawPattern + r"))"
+        self.regex = re.compile(rawPatternOverlap)
         # Initialize the list of occurrences
         self.occurrences = []
 
