@@ -19,12 +19,14 @@ class Occurrence:
     """
     
     def __init__(self, line, column, parent):
+        # Coordinates of the occurrence
         self.line = line
         self.column = column
+        # Link to the PatternPart object of which this is an occurrence
         self.parent = parent
 
     def follows(self, otherOccurrence):
-        """Check whether an occurrence may be the continuation.
+        """Check whether an occurrence continues a pattern.
         
         Returns True in case the given occurrence follows 
         the current occurrence, i.e. if it starts at the same
@@ -34,26 +36,14 @@ class Occurrence:
         return self.line == otherOccurrence.line + 1 and \
             self.column == otherOccurrence.column
 
-    def markUsed(self, usedCharacters):
-        """Keep track of the characters in matched patterns.
-        
-        Mark characters belonging to patterns matched in the
-        landscape, so as to not reuse them in another pattern.
-        """
-        
-        for index in self.parent.patternFootprint:
-            usedCharacters.addPosition(self.line, self.column + index)
-
-    def alreadyUsed(self, usedCharacters):
-        for index in self.parent.patternFootprint:
-            if usedCharacters.isPositionUsed(self.line, self.column + index):
-                return True
-            
-        return False
- 
  
 class PatternPart:
-    """
+    """Characteristics of a partial pattern.
+    
+    This object stores information relative to a part of the 
+    total pattern (i.e. one line of the total pattern):
+    string to be matched and list of occurrences in the 
+    given text file.
     """
     def __init__(self, pattern):
         """Set the pattern and compile the corresponding RegEx."""
@@ -72,6 +62,8 @@ class PatternPart:
         rawPattern = re.escape(self.pattern)
         # Allow any character instead of spaces in the pattern
         rawPattern = re.sub(r"\\ ", r".", rawPattern)
+        # This makes sure that a given character may be used in multiple
+        # matches (e.g. 'aa' matches 'aaa' twice)
         rawPatternOverlap = r"(?=(" + rawPattern + r"))"
         self.regex = re.compile(rawPatternOverlap)
         # Initialize the list of occurrences
@@ -188,8 +180,6 @@ class BugFinder:
             for occurrence in patternPart.occurrences:
                 # Skip occurrences that have already been used 
                 # in another pattern
-#                 if occurrence.alreadyUsed(self.usedCharacters):
-#                     continue
                 if self.usedCharacters.alreadyUsed(occurrence):
                     continue
                 
@@ -209,8 +199,6 @@ class BugFinder:
             for occurrence in patternFirstPart.occurrences:
                 # Skip occurrences that have already been used 
                 # in another pattern
-#                 if occurrence.alreadyUsed(self.usedCharacters):
-#                     continue
                 if self.usedCharacters.alreadyUsed(occurrence):
                     continue
 
@@ -225,7 +213,6 @@ class BugFinder:
                     # matching pattern so as to avoid reusing them 
                     # in another match
                     for occurrence in occurrenceList:
-#                         occurrence.markUsed(self.usedCharacters)
                         self.usedCharacters.markUsed(occurrence)
                     # Store the properties of the matching pattern 
                     # parts for later use
