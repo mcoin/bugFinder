@@ -17,7 +17,6 @@ class Occurrence:
     
     Position (line, column) in the text file of the occurrence.
     """
-    
     def __init__(self, line, column, parent):
         # Coordinates of the occurrence
         self.line = line
@@ -84,16 +83,29 @@ class PatternPart:
                 
        
 class UsedCharacters:
+    """List of characters involved in matched patterns.
+    
+    Class used to maintain a list of characters belonging to matched
+    patterns, so that they are not reused in other, subsequent matches.
+    """
     def __init__(self):
+        # Initialize the list
+        # Data is organized as a dictionary (indexed by line) 
+        # of sets (columns corresponding to the characters), 
+        # as access is by line, then column
         self.list = {}
         
     def addPosition(self, line, column):
+        """Add position to the list of matched characters.
+        """ 
         if line not in self.list:
             self.list[line] = set();
             
         self.list[line].add(column)
         
     def isPositionUsed(self, line, column):
+        """Return True in case the given position is in the list.
+        """
         if line in self.list and column in self.list[line]:
             return True
         
@@ -104,23 +116,38 @@ class UsedCharacters:
         
         Mark characters belonging to patterns matched in the
         landscape, so as to not reuse them in another pattern.
-        """
-        
+        """  
         for index in occurrence.parent.patternFootprint:
             self.addPosition(occurrence.line, occurrence.column + index)
 
     def alreadyUsed(self, occurrence):
+        """Check status of the characters in the given occurrence.
+        
+        Return True in case any of the characters in the given 
+        occurrence is already involved in any other matched 
+        pattern. 
+        """
         for index in occurrence.parent.patternFootprint:
             if self.isPositionUsed(occurrence.line, occurrence.column + index):
                 return True
-            
+
         return False
         
 
 
 class BugFinder:
+    """Find multiline patterns (bugs) in a text file (landscape).
+    
+    Given a text file containing a pattern possibly spanning
+    multiple lines, find occurrences of this pattern in a second
+    text file. Spaces are ignored in the pattern, and characters 
+    belonging to a pattern already matched in the landscape 
+    cannot be reused in any further pattern match.
+    """
     def __init__(self):
+        # The multiline pattern to be matched (one element per line)
         self.pattern = []
+        # Flag indicating that the pattern has been properly set
         self.patternSet = False
         # Number of matches for the whole pattern (i.e. all parts)
         self.matches = 0
@@ -131,6 +158,8 @@ class BugFinder:
         self.usedCharacters = UsedCharacters()
         
     def setPattern(self, fileName):
+        """Read the pattern from a file.
+        """
         try:
             file = open(fileName, "r")
             # Store the different lines of the pattern
@@ -148,16 +177,27 @@ class BugFinder:
             
         except:
             print("Cannot read the pattern file.")
-            
+        
+        # The pattern has been successfully set
         self.patternSet = True
 
     def checkPattern(self):
+        """Raise an exception in case the pattern was not properly set
+        """
         # Check that a pattern as been defined
         if not self.patternSet or len(self.pattern) == 0:
             # TODO: Error message
             raise
         
     def analyzeLandscape(self, fileName):
+        """Read the landscape file to find single-line matches.
+        
+        For each part of the pattern (i.e. for each line), mark 
+        position in the landscape file where they occur. These
+        individual parts will be put together to form complete
+        patterns in detectPattern().
+        """
+        # This only makes sense in case the pattern has been set
         self.checkPattern()
         
         try:
@@ -192,6 +232,8 @@ class BugFinder:
                     
     
     def detectPattern(self):
+        """
+        """
         self.checkPattern()
         # Loop over all matches for the first part of the pattern
         for patternFirstPart in self.pattern:
@@ -226,6 +268,7 @@ def main():
     # Initialize
     bugFinder = BugFinder()
     
+    # Input files
     patternFile = "bug.txt"
     landscapeFile = "landscape.txt"
     
