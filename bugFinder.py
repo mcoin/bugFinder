@@ -15,7 +15,7 @@ import re
 class Occurrence:
     """Properties of a match for part of a pattern.
     
-    Position (line, column) in the text file of the occurrence.
+    Position (line, column) of the occurrence in the text file.
     """
     def __init__(self, line, column, parent):
         # Coordinates of the occurrence
@@ -31,7 +31,6 @@ class Occurrence:
         the current occurrence, i.e. if it starts at the same
         column on the next line.
         """
-        
         return self.line == otherOccurrence.line + 1 and \
             self.column == otherOccurrence.column
 
@@ -77,6 +76,7 @@ class PatternPart:
             self.occurrences.append(Occurrence(lineNumber, columnNumber, self))
 
     def measureFootprint(self, pattern):
+        """Determine the footprint of a pattern."""
         for index, char in enumerate(pattern):
             if char != " ":
                 self.patternFootprint.append(index)
@@ -96,16 +96,14 @@ class UsedCharacters:
         self.list = {}
         
     def addPosition(self, line, column):
-        """Add position to the list of matched characters.
-        """ 
+        """Add position to the list of matched characters.""" 
         if line not in self.list:
             self.list[line] = set();
             
         self.list[line].add(column)
         
     def isPositionUsed(self, line, column):
-        """Return True in case the given position is in the list.
-        """
+        """Return True in case the given position is in the list."""
         if line in self.list and column in self.list[line]:
             return True
         
@@ -158,8 +156,7 @@ class BugFinder:
         self.usedCharacters = UsedCharacters()
         
     def setPattern(self, fileName):
-        """Read the pattern from a file.
-        """
+        """Read the pattern from a file."""
         try:
             file = open(fileName, "r")
             # Store the different lines of the pattern
@@ -176,18 +173,16 @@ class BugFinder:
             # have at least that many
             
         except:
-            print("Cannot read the pattern file.")
+            raise Exception("Cannot read the pattern file.")
         
         # The pattern has been successfully set
         self.patternSet = True
 
     def checkPattern(self):
-        """Raise an exception in case the pattern was not properly set
-        """
+        """Raise an exception in case the pattern was not properly set."""
         # Check that a pattern as been defined
         if not self.patternSet or len(self.pattern) == 0:
-            # TODO: Error message
-            raise
+            raise Exception("Pattern has not been properly defined.")
         
     def analyzeLandscape(self, fileName):
         """Read the landscape file to find single-line matches.
@@ -209,9 +204,16 @@ class BugFinder:
                     for patternPart in self.pattern:
                         patternPart.findOccurrences(lineNumber, line)
         except:
-            print("Cannot read the landscape file.")
+            raise Exception("Cannot read the landscape file.")
                  
     def findOccurrenceOfNextPatternPart(self, occurrenceList):
+        """Recursive function to assemble pattern parts.
+        
+        This function attempts to find line n+1 of a pattern to 
+        continue after line n has been found. If the recursive calls
+        are successful up to the total number of lines in the pattern,
+        this is a match.
+        """
         # Select the next pattern part
         for patternPart in self.pattern:
             if self.pattern.index(patternPart) < len(occurrenceList):
@@ -232,7 +234,11 @@ class BugFinder:
                     
     
     def detectPattern(self):
-        """
+        """Assemble pattern part matches into the complete pattern.
+        
+        Check whether each match for a pattern part is followed 
+        by matches of the subsequent pattern parts on the consecutive
+        lines. 
         """
         self.checkPattern()
         # Loop over all matches for the first part of the pattern
@@ -246,6 +252,7 @@ class BugFinder:
 
                 occurrenceList = [occurrence]
                 
+                # Look recursively for continuation of the pattern
                 self.findOccurrenceOfNextPatternPart(occurrenceList)
 
                 if len(occurrenceList) == len(self.pattern):
@@ -275,9 +282,11 @@ def main():
     # Read pattern
     bugFinder.setPattern(patternFile)
     
+    # Test: This should return 1 match
+    #bugFinder.analyzeLandscape(patternFile)
+    
     # Analyze landscape
     bugFinder.analyzeLandscape(landscapeFile)
-#     bugFinder.analyzeLandscape(patternFile)
     
     # Piece pattern parts together
     bugFinder.detectPattern()
